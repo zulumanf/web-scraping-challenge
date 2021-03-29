@@ -1,136 +1,136 @@
-#import dependencies and libraries to be used
 from splinter import Browser
 from bs4 import BeautifulSoup as bs
-from webdriver_manager.chrome import ChromeDriverManager
 import time
+from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 
-#scraping function that will be used by the route, data has to be stored in dictionaries
+#scrape function
 def scrape():
-    # Splinter set up
+    # Set up Splinter
     executable_path = {'executable_path': ChromeDriverManager().install()}
     browser = Browser('chrome', **executable_path, headless=False)
-                                
-    #NASA SCRAPING
 
-    #NASA URL to be scraped
-    nasa_url = 'https://mars.nasa.gov/news/'
-    browser.visit(nasa_url)
+    #NASA 
+
+    #visit mars NASA url without paramters in URL
+    MarsNews_url = 'https://mars.nasa.gov/news/'
+    browser.visit(MarsNews_url)
+
+    #create html object
     html = browser.html
 
-    #make beautiful soup object to be parsed with the html.parser
-    news_soup = bs(html, 'html.parser')
+    #create beatifulsoup object, parse html
+    soup = bs(html, 'html.parser')
 
-    #use the find method to find all the instances of the specified class variable from the HTML of the page
-    nasa_content_title = news_soup.find_all(class_='content_title')
-    nasa_body_article = news_soup.find_all(class_='article_teaser_body')
+    #this contains the latest news title and paragraph text
+    first_child = soup.find('li', class_='slide')
 
-    #initilizing lists for the for loop to hold the values
-    news_title=[]
-    news_paragraph = []
+    #save under the <div> tag with a class of 'content_title', do not do find all
+    news_title = first_child.find('div', class_='content_title').text
+    print(news_title)
 
-    #for loop to get the titles
-    for title in nasa_content_title:
-        try:
-            news_title.append(title.a.text.strip())
-        except:
-            pass
-    #for loop to get the body articles    
-    for body in nasa_body_article:
-        try:
-            news_paragraph.append(body.text.strip())
-        except:
-            pass
-        
-    recent_news = news_title[0]
-    recent_paragraph = news_paragraph[0]
-    news_dict = {}
-    news_dict['news title'] = recent_news
-    news_dict['news paragraph'] = recent_paragraph
+    #save the paragraph text under the <div> tag with a class of 'article_teaser_body', do not do find all
+    news_para = first_child.find('div', class_='article_teaser_body').text
+    print(news_para)
 
-    #image scraping
+    #Scraping JPL Featured Image URL
 
-    #amazon jpl url to be scraped
-    featured_image_url = 'https://data-class-jpl-space.s3.amazonaws.com/JPL_Space/index.html'
+    # JPL Website
+    jpl_url = 'https://data-class-jpl-space.s3.amazonaws.com/JPL_Space/index.html'
 
-    #open chrome and visit url
-    browser.visit(featured_image_url)
+    #visit jpl url
+    browser.visit(jpl_url)
+
     html = browser.html
 
-    #make a beautifulsoup object so it can be parsed with the html.parser
-    jpl_image_soup = bs(html, 'html.parser')
+    #create beautiful soup object, parse
+    j_soup = bs(html, 'html.parser')
 
-    #looking for the class in the html called headerimage
-    featured_image = jpl_image_soup.find_all('img', class_='headerimage')
+    #look for image of class headerimage
+    main_image = j_soup.find_all('img', class_='headerimage')
+    for image in main_image:
+        #f string to pull in the image url
+        jpl_image_url = f"https://data-class-jpl-space.s3.amazonaws.com/JPL_Space/{image['src']}"
 
-    #for loop to get the image
-    for image in featured_image:
-        featured_image_url = f"https://data-class-jpl-space.s3.amazonaws.com/JPL_Space/{image['src']}"
-    jpl_image_dict = {}
-    jpl_image_dict['img url'] = featured_image_url
-    
+    #print the image url
+    print(jpl_image_url)
 
-    #Mars scrape
 
-    # Scraped table containing facts about the planet
-    mars_url = 'https://space-facts.com/mars/'
+    #Scraping Mars Facts¶
 
-    # Read url and returned a list of DataFrames
-    mars_table = pd.read_html(mars_url)
-    mars_table = mars_table[1]
+
+    #go to mars facts website
+    marsfacts_url = 'https://space-facts.com/mars/'
+    browser.visit(marsfacts_url)
+
+    #create html object
+    html = browser.html
+
+    #read html with pandas
+    mars_table = pd.read_html(html)
+
+    #create pandas dataframe and slice it into the appropiate columns
+    marsfacts_df = mars_table[0]
+    marsfacts_df.columns =['Description', 'Value']
+    marsfacts_df
 
     # Converted data to HTML table string
-    html_mars_table = mars_table.to_html()
-    mars_dict = {}
-    mars_dict['mars table'] = html_mars_table
+    html_mars_table = marsfacts_df.to_html()
+    print(html_mars_table)
 
-    #hempishphere scrape
+    #Mars Hemisphere
+
+
+    #visit mars hemi url
+    mars_hemi_url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(mars_hemi_url)
+
+
+    #create html object
+    html = browser.html
+
+    #create beautiful soup object, parse 
+    soup = bs(html, 'html.parser')
 
     hemispheres_url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
 
-    #url that is being scraped
     browser.visit(hemispheres_url)
-    html = browser.html
 
-    #creating the beautifulsoup object
-    soup = bs(html, 'html.parser')
 
-    #finding all instanced of the class called description in the html
-    names = soup.find_all(class_='description')
 
-    #initlizing hemisphere_list
-    hemisphere_list = []
+    #get parent div
+    hemi_divs = soup.find_all('div', class_="item")
 
-    #for loop to ge the h3 anchor tags that are stored in the "names" variables
-    for name in names:
-        hemisphere_list.append(name.a.h3.text)
+    #initialize list
+    hemisphere_image_data = []
 
-    #go through the pages to get the image info
-    browser.visit(hemispheres_url)
-    hemisphere_image_urls=[]
-    for x in range(len(hemisphere_list)):
-            html = browser.html
-            soup = bs(html, 'html.parser')
-            browser.click_link_by_partial_text(hemisphere_list[i])
-            html = browser.html
-            soup = bs(html, 'html.parser')
-            title = hemisphere_list[i]
-            img_url = soup.find(class_='downloads')
-                
-            hemisphere_dict = {}
-            hemisphere_dict['title'] = title
-            hemisphere_dict['img_url'] = img_url.a['href']
-            hemisphere_image_urls.append(hemisphere_dict)
-            browser.back()
+    #loop through to get hemi data
+    for hemisphere in range(len(hemi_divs)):
 
-    #Adding everything into dictionaries/lists
-    nasa_data = []
-    nasa_data.append(news_dict)
-    nasa_data.append(jpl_image_dict)
-    nasa_data.append(mars_dict)
-    nasa_data.append(hemisphere_dict)
-
-    #Close browser with splinter
+        hem_link = browser.find_by_css("a.product-item h3")
+        hem_link[hemisphere].click()
+        time.sleep(1)
+        img_detail_html = browser.html
+        imagesoup = BeautifulSoup(img_detail_html, 'html.parser')
+    
+        #base url
+        base_url = 'https://astrogeology.usgs.gov'
+    
+        #image url, add base plus image url to create final url
+        hem_url = imagesoup.find('img', class_="wide-image")['src']
+        img_url = base_url + hem_url
+        img_title = browser.find_by_css('.title').text
+    
+        hemisphere_image_data.append({"title": img_title,
+                              "img_url": img_url})
+    
+        #go back to main page
+        browser.back()
+    
+    #close the session    
     browser.quit()
 
-    return nasa_data
+    hemisphere_image_data
+
+
+
